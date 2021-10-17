@@ -52,6 +52,8 @@ import { Filter, FieldFilter } from '@directus/shared/types';
 import Nodes from './nodes.vue';
 import { getNodeName } from './utils';
 import { useFieldTree } from '@/composables/use-field-tree';
+import { useFieldsStore } from '@/stores';
+import { getDefaultFieldFilterByType, FALLBACK_FILTER_OPERATOR } from '@/utils/get-default-field-filter-by-type';
 
 export default defineComponent({
 	components: {
@@ -83,10 +85,11 @@ export default defineComponent({
 	emits: ['input'],
 	setup(props, { emit }) {
 		const { t } = useI18n();
+		const fieldsStore = useFieldsStore();
 
 		const values = inject('values', ref<Record<string, any>>({}));
 
-		const collection = computed(() => {
+		const collection = computed<string | null>(() => {
 			if (props.collectionName) return props.collectionName;
 
 			return values.value[props.collectionField] ?? null;
@@ -148,8 +151,10 @@ export default defineComponent({
 				];
 			} else {
 				const filterObj = {};
+				const fieldInfo = collection.value !== null ? fieldsStore.getField(collection.value, key) : null;
+				const defaultNodeValue = fieldInfo ? getDefaultFieldFilterByType(fieldInfo.type) : FALLBACK_FILTER_OPERATOR;
 
-				set(filterObj, key, { _eq: null });
+				set(filterObj, key, defaultNodeValue);
 
 				innerValue.value = [...innerValue.value, filterObj] as FieldFilter[];
 			}
